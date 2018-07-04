@@ -34,9 +34,9 @@ nmap <silent> ab :call absorb#execute()<CR>
 
 screenshots
 -------------
-![clean](https://raw.githubusercontent.com/ldengjie/vim-absorb/master/doc/clean.jpg)
-![with_nerdtree_tagbar](https://raw.githubusercontent.com/ldengjie/vim-absorb/master/doc/with_nerdtree_tagbar.jpg)
-![with_nerdtree_tagbar_ag](https://raw.githubusercontent.com/ldengjie/vim-absorb/master/doc/with_nerdtree_tagbar_ag.jpg)
+![clean](https://raw.githubusercontent.com/ldengjie/vim-absorb/master/doc/clean.jpg | width=400)
+![with_nerdtree_tagbar](https://raw.githubusercontent.com/ldengjie/vim-absorb/master/doc/with_nerdtree_tagbar.jpg | width=400)
+![with_nerdtree_tagbar_ag](https://raw.githubusercontent.com/ldengjie/vim-absorb/master/doc/with_nerdtree_tagbar_ag.jpg | width=400)
 
 Inspiration
 -----------
