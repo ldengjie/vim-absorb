@@ -34,10 +34,6 @@ function! s:init_win(command)
   setlocal colorcolumn=
   let winid = win_getid()
 
-  "augroup absorbp
-    "execute 'autocmd WinEnter,CursorMoved <buffer> nested call s:blank()'
-  "augroup END
-
   " To hide scrollbars of win windows in GVim
   let diff = winheight(0) - line('$') - (has('gui_running') ? 2 : 0)
   if diff > 0
@@ -99,7 +95,7 @@ fu! s:closeouter()
     for winidi in o_winids
         exe win_id2win(winidi).' wincmd c'
     endfor
-    call s:reSizeWin()
+    call absorb#reSizeWin()
 endfu
 fu! s:wintype(winid)
     if a:winid==0
@@ -142,7 +138,7 @@ fu! s:Wincmd(count,opr)
             elseif cur_wintype=='outer'
                 let target_winnr=s:backtoinner()
                 exe target_winnr.' wincmd '.opr
-                call s:reSizeWin()
+                call absorb#reSizeWin()
             else
                 if t:absorb_wins.i_wins_count() >1
                     if target_winnr!=0
@@ -163,7 +159,7 @@ fu! s:Wincmd(count,opr)
             "call s:closeouter()
             call s:toggleMaxWin()
         elseif opr == 'r'
-            call s:reSizeWin()
+            call absorb#reSizeWin()
         else
             throw 'absorb: do NOT support ['.opr.']'
         endif
@@ -334,7 +330,7 @@ function! s:calWinSize()
     return absorb_7
 endfunction
 
-function! s:reSizeWin()
+function! absorb#reSizeWin()
     "if exists("#absorb")
     "exe 'echo "'.localtime().'"'
     call s:backtoinner()
@@ -540,14 +536,14 @@ function! s:absorb_on()
                 \ 'o_wins_count' : function("s:wins_count",["o_winids"])
                 \}
 
-    call s:reSizeWin()
+    call absorb#reSizeWin()
 
     call s:tranquilize()
     call s:hide_statusline()
 
     augroup absorb
         autocmd!
-        autocmd VimResized  *        call s:reSizeWin()
+        autocmd VimResized  *        call absorb#reSizeWin()
         autocmd ColorScheme *        call s:tranquilize()
         autocmd BufWinEnter *        call s:hide_linenr() | call s:hide_statusline()
         autocmd WinEnter,WinLeave *  call s:hide_statusline()
@@ -578,7 +574,7 @@ function! s:absorb_on()
     cabbrev  wincmd Wincmd
     command! -nargs=1 -count=0 -bar Wincmd call <sid>Wincmd(<count>,<q-args>)
 
-    nnoremap <silent> <plug>(absorb-resize) :<c-u>call <sid>reSizeWin()<cr>
+    nnoremap <silent> <plug>(absorb-resize) :<c-u>call absorb#reSizeWin()<cr>
 
     cabbrev <expr> q <SID>quitall()
 
