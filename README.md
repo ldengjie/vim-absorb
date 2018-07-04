@@ -32,6 +32,12 @@ autocmd VimEnter * call absorb#execute()
 nmap <silent> ab :call absorb#execute()<CR>  
 ```
 
+screenshots
+-------------
+![clean](./doc/clean.png)
+![with_nerdtree_tagbar](./doc/with_nerdtree_tagbar.png)
+![with_nerdtree_tagbar_ag](./doc/with_nerdtree_tagbar_ag.png)
+
 Inspiration
 -----------
 
