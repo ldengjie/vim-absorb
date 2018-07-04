@@ -1,4 +1,4 @@
-" Copyright (c) 2015 Junegunn Choi
+" Copyright (c) 2018 Li Dengjie
 "
 " MIT License
 "
