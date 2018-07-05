@@ -479,6 +479,9 @@ fu! s:showWinInfo()
     exe 'echo "==> '.s:wintype(0).' '.win_getid()." ".winnr()." ".winbufnr("")." ".bufname("").'"'
 endfu
 fu! s:hide_cursorline()
+    if &filetype=='minibufexpl'
+        set nocursorline
+    endif
     if exists("t:absorb_wins")
         let wintype=s:wintype(0)
         if wintype!='inner' || &filetype=='minibufexpl'
@@ -522,6 +525,11 @@ function! s:absorb_on()
         silent! call lightline#disable()
     endif
 
+    if exists("#MiniBufExpl")
+        MBEOpen
+    endif
+
+
     call s:turnOffTmuxStatus()
 
     call s:hide_linenr()
@@ -544,31 +552,6 @@ function! s:absorb_on()
         set guioptions-=l
         set guioptions-=L
     endif
-
-    "t:
-    "{flag:v,height:,width:,pads:[v1,v2]}
-    "v1: {flag:h,height:46,width:180,pads:[v1h1,v1h2,v1h3]}
-    "v1h1: {flag:w,height:46,width:20}
-    "v1h2: {flag:v,height:,width:,pads:[v1h2v1,v1h2v2,v1h2v3]}
-    "v1h2v1: {flag:w,height:1,width:139}
-    "v1h2v2: {flag:h,height:,width:,pads:[v1h2v2h1,v1h2v2h2,v1h2v2h2]}
-    "v1h2v2h1: {flag:w,height:30,width:46}
-    "v1h2v2h2: {flag:w,height:30,width:46}
-    "v1h2v2h3: {flag:w,height:30,width:46}
-    "v1h2v3: {flag:w,height:1,width:139}
-    "v1h3: {flag:w,height:46,width:20}
-    "v2: {flag:w,height:4,width:181}
-
-    "fu! s:explorsPad(winid)
-    "endfu
-
-    "function! Tree(lst, ret)
-    "if empty(a:lst)
-    "return a:ret
-    "endif
-    "let _ = a:ret + get(a:lst, 0)
-    "return Tree(a:lst[1:-1], _)
-    "endfunction
 
     let t:lwin_bufname='lwin'.localtime()
     let t:rwin_bufname='rwin'.localtime()
