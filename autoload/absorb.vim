@@ -200,13 +200,14 @@ fu! s:winSkip(count,opr)
 
                 exe route_winnr.' wincmd w'
                 exe 'wincmd ' . a:opr
-                let final_winid=win_getid()
+                let midway_winid=win_getid()
                 "如果跳不出去，说明是尽头，应返回
-                if final_winid==cur_winid
+                if midway_winid==cur_winid
                     exe win_id2win(last_winid).' wincmd w'
+                    break
                 "如果跳调到另一个边框，说明是outer往inner跳转时出错,应跳到inner
-                elseif index(s_winids,final_winid)>=0
-                    let cur_name=s_bufnames[index(s_winids,final_winid)]
+                elseif index(s_winids,midway_winid)>=0
+                    let cur_name=s_bufnames[index(s_winids,midway_winid)]
                     let route_to=skip_route[cur_name]['to']
                     exe 'wincmd ' . route_to
                 endif
@@ -214,6 +215,12 @@ fu! s:winSkip(count,opr)
                 call add(g:tes,'wincmd ' . a:opr)
             endif
         endfor
+        let final_winid=win_getid()
+        if index(s_winids,final_winid)>=0
+            let cur_name=s_bufnames[index(s_winids,final_winid)]
+            let route_to=skip_route[cur_name]['to']
+            exe 'wincmd ' . route_to
+        endif
     finally
         let &paste=pasteValue
     endtry
