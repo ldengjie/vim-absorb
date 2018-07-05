@@ -29,7 +29,7 @@ nmap <silent> cq :cclose<CR>:call absorb#reSizeWin()<CR>
 nnoremap  <Leader>n :NERDTreeToggle <bar>call absorb#reSizeWin()<CR>  
 nnoremap  <Leader>t :call tagbar#ToggleWindow()<CR>:call absorb#reSizeWin()<CR>  
 autocmd VimEnter * call absorb#execute()  
-nmap <silent> ab :call absorb#execute()<CR>  
+nmap <silent> XX :call absorb#execute()<CR>  
 ```
 
 screenshots

@@ -177,19 +177,20 @@ fu! s:winSkip(count,opr)
                     \ 'twin' : {'h':'rwin','l':'lwin','j':'twin','k':'twin','to':'j'},
                     \ 'bwin' : {'h':'rwin','l':'lwin','j':'bwin','k':'bwin','to':'k'}
                     \}
-        let g:tes=[]
-        call add(g:tes,a:count)
-        call add(g:tes,a:opr)
         for ci in range(1,a:count)
             exe 'wincmd '.a:opr
             let last_winid=win_getid(winnr('#'))
             let cur_winid=win_getid()
-            let s_winids=t:absorb_wins.s_winids()
+            let s_winids=t:absorb_wins.s_winids_init
             let s_index=index(s_winids,cur_winid)
+            let g:s_index=s_index
+            let g:s_winids=s_winids
+            let g:cur_winid=cur_winid
             if s_index>=0
 
                 let s_bufnames=t:absorb_wins.s_bufnames()
                 let s_bufname2winid={}
+                let g:s_bufnames=s_bufnames
                 for s_i in range(len(s_bufnames))
                     let s_bufname2winid[s_bufnames[s_i]]=s_winids[s_i]
                 endfor
@@ -211,8 +212,6 @@ fu! s:winSkip(count,opr)
                     let route_to=skip_route[cur_name]['to']
                     exe 'wincmd ' . route_to
                 endif
-                call add(g:tes,route_winnr.' wincmd w')
-                call add(g:tes,'wincmd ' . a:opr)
             endif
         endfor
         let final_winid=win_getid()
@@ -228,25 +227,17 @@ endfu
 
 function! s:get_winids(area) dict
     let winids=[]
-    if a:area=="inner"
-        let s_united_scpos=self.s_united_scpos()
-        for wi in range(1,winnr('$'))
-            let cur_screenpos=win_screenpos(wi)
-            if cur_screenpos[0]>s_united_scpos[0] && cur_screenpos[0]<s_united_scpos[2]&&cur_screenpos[1]>s_united_scpos[1]&&cur_screenpos[1]<s_united_scpos[3]
-                call add(winids,win_getid(wi))
-            endif
-        endfor
-    elseif a:area=="outer"
-        let s_united_scpos=self.s_united_scpos()
-        for wi in range(1,winnr('$'))
-            let cur_screenpos=win_screenpos(wi)
-            if cur_screenpos[0]<s_united_scpos[0] || cur_screenpos[0]>s_united_scpos[2]||cur_screenpos[1]<s_united_scpos[1]||cur_screenpos[1]>s_united_scpos[3]
-                call add(winids,win_getid(wi))
-            endif
-        endfor
-    elseif a:area=="surrounding"
-        let winids=deepcopy(t:absorb_wins.s_winids_init)
-    endif
+    let s_united_scpos=self.s_united_scpos()
+    for wi in range(1,winnr('$'))
+        let cur_screenpos=win_screenpos(wi)
+        if cur_screenpos[0]>s_united_scpos[0] && cur_screenpos[0]<s_united_scpos[2]&&cur_screenpos[1]>s_united_scpos[1]&&cur_screenpos[1]<s_united_scpos[3]
+            if a:area=="inner" | call add(winids,win_getid(wi)) | endif
+        elseif cur_screenpos[0]<s_united_scpos[0] || cur_screenpos[0]>s_united_scpos[2]||cur_screenpos[1]<s_united_scpos[1]||cur_screenpos[1]>s_united_scpos[3]
+            if a:area=="outer" | call add(winids,win_getid(wi)) | endif
+        else
+            if a:area=="surrounding" | call add(winids,win_getid(wi)) | endif
+        endif
+    endfor
     return winids
 endfunction
 function! s:list_bufnames(winidlist) dict
@@ -264,7 +255,12 @@ endfunction
 function! s:wins_united_screenpos(winidlist) dict
     let rows=[]
     let cols=[]
-    for winid in self[a:winidlist]()
+    if type(self[a:winidlist])==2
+        let winidlist=self[a:winidlist]()
+    else
+        let winidlist=self[a:winidlist]
+    endif
+    for winid in winidlist
         call add(rows,win_screenpos(winid)[0])
         call add(cols,win_screenpos(winid)[1])
     endfor
@@ -444,6 +440,41 @@ function! s:turnOnTmuxStatus()
         silent !tmux list-panes -F '\#F' | grep -q Z && tmux resize-pane -Z
     endif
 endfunction
+fu! s:recordBufInfo()
+    exe 'echo "==> '.s:wintype(0).' '.win_getid()." ".winnr()." ".winbufnr("")." ".bufname("").'"'
+endfu
+fu! s:moveBuffer()
+    try
+        let pasteValue=&paste
+        set paste
+        let orig_winid=win_getid()
+        let orig_bufnr=winbufnr(0)
+        let orig_bufname=bufname("%")
+        if !exists('w:bufFirstEnter')
+            let w:bufFirstEnter=1
+            let g:buf_enter_buf[orig_winid]={'bufname':orig_bufname,'bufnr':orig_bufnr}
+        endif
+        let g:orig_bufname=orig_bufname
+        if orig_bufnr!=g:buf_enter_buf[orig_winid]['bufnr']
+            let wintype=s:wintype(0)
+            if wintype=='surrounding'
+                call s:backtoinner()
+                exe 'wincmd s'
+                exe 'wincmd j'
+                exe 'b '.orig_bufnr
+                exe win_id2win(orig_winid).' wincmd c'
+            elseif wintype=='outer'
+                "exe 'b '.g:buf_enter_buf[orig_winid]['bufnr']
+                "call s:backtoinner()
+                "exe 'b '.orig_bufnr
+            endif
+        endif
+    catch /./
+        throw v:exception
+    finally
+        let &paste=pasteValue
+    endtry
+endfu
 
 function! s:absorb_on()
 
@@ -528,13 +559,15 @@ function! s:absorb_on()
     "return Tree(a:lst[1:-1], _)
     "endfunction
 
+    let g:win_enter_buf={}
+    let g:buf_enter_buf={}
     let t:absorb_wins = {
                 \ 's_winids_init' : [s:init_win('vertical topleft new'),s:init_win('vertical botright new'),s:init_win('topleft new'),s:init_win('botright new')],
                 \ 's_bufnames_init' : ['lwin','rwin','twin','bwin'],
                 \ 's_winids' : function("s:get_winids",['surrounding']),
                 \ 's_bufnames' : function('s:list_bufnames',['s_winids']),
                 \ 's_wins_count' : function("s:wins_count",["s_winids"]),
-                \ 's_united_scpos' : function("s:wins_united_screenpos",['s_winids']),
+                \ 's_united_scpos' : function("s:wins_united_screenpos",['s_winids_init']),
                 \ 'i_winids' : function("s:get_winids",['inner']),
                 \ 'i_bufnames' : function('s:list_bufnames',['i_winids']),
                 \ 'i_wins_count' : function("s:wins_count",["i_winids"]),
@@ -558,6 +591,9 @@ function! s:absorb_on()
             autocmd TermClose * call feedkeys("\<plug>(absorb-resize)")
         endif
         autocmd QuitPre * call s:turnOnTmuxStatus()
+        autocmd BufEnter *        call  s:moveBuffer()
+        autocmd WinEnter *        call  s:recordBufInfo()
+        autocmd BufWinLeave *        throw "bufwinleave"
     augroup END
 
     let oplist=['a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z','A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z',
@@ -595,7 +631,7 @@ endfunction
 
 function! absorb#execute()
     call s:absorb_on()
-    "exe "highlight VertSplit ctermbg='red' | highlight StatusLine ctermbg='black' | highlight StatusLineNC ctermbg='white'"
+    exe "highlight VertSplit ctermbg='red' | highlight StatusLine ctermbg='black' | highlight StatusLineNC ctermbg='white'"
     let l:hasFile=len(bufname("%"))
     if !l:hasFile
         exe "NERDTree"
