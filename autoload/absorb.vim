@@ -526,7 +526,7 @@ function! s:absorb_on()
     endif
 
     if exists("#MiniBufExpl")
-        MBEOpen
+        MBEClose
     endif
 
 
