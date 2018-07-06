@@ -434,7 +434,21 @@ fu! s:quitall()
         if t:absorb_wins.i_wins_count()==1
             return 'qall'
         else
-            return 'Wincmd c'
+            return 'q'
+        endif
+    endif
+endfu
+fu! s:wquitall()
+    let cur_wintype=s:wintype(0)
+    if cur_wintype=='surrounding'
+        throw 'absorb: Can NOT close surrounding windows'
+    elseif cur_wintype=='outer'
+        return 'Wincmd c'
+    else
+        if t:absorb_wins.i_wins_count()==1
+            return 'wqall'
+        else
+            return 'wq'
         endif
     endif
 endfu
@@ -488,6 +502,26 @@ fu! s:hide_cursorline()
             set nocursorline
         endif
     endif
+endfu
+fu! s:nerdtreeToggle(opr)
+    if a:opr=='toggle'
+        NERDTreeToggle
+    elseif a:opr=='open'
+        NERDTree
+    elseif a:opr=='close'
+        NERDTreeClose
+    endif
+    call absorb#reSizeWin()
+endfu
+fu! s:tagbarToggle(opr)
+    if a:opr=='toggle'
+        TagbarToggle
+    elseif a:opr=='open'
+        TagbarOpen
+    elseif a:opr=='close'
+        TagbarClose
+    endif
+    call absorb#reSizeWin()
 endfu
 
 function! s:absorb_on()
@@ -615,6 +649,16 @@ function! s:absorb_on()
     nnoremap <silent> <plug>(absorb-resize) :<c-u>call absorb#reSizeWin()<cr>
 
     cabbrev <expr> q <SID>quitall()
+    cabbrev <expr> wq <SID>wquitall()
+    cabbrev MBEToggle call absorb#backtoinner() <bar> MBEToggle
+    cabbrev MBEClose call absorb#backtoinner() <bar> MBEClose
+    cabbrev MBEOpen call absorb#backtoinner() <bar> MBEOpen
+    cabbrev NERDTreeToggle call <SID>nerdtreeToggle('toggle')
+    cabbrev NERDTree call <SID>nerdtreeToggle('toggle')
+    cabbrev NERDTreeClose call <SID>nerdtreeToggle('toggle')
+    cabbrev TagbarToggle call <SID>tagbarToggle('toggle')
+    cabbrev TagbarOpen call <SID>tagbarToggle('open')
+    cabbrev TagbarClose call <SID>tagbarToggle('close')
 
     if exists('g:absorb_callbacks[0]')
         call g:absorb_callbacks[0]()
@@ -629,7 +673,7 @@ function! absorb#execute()
     "exe "highlight VertSplit ctermbg='red' | highlight StatusLine ctermbg='black' | highlight StatusLineNC ctermbg='white'"
     let l:hasFile=len(bufname("%"))
     if !l:hasFile
-        "exe "NERDTree"
+        exe "NERDTree"
     endif
 endfunction
 
