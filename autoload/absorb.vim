@@ -43,6 +43,7 @@ function! s:init_win(command,fname)
     setlocal nomodifiable
   endif
   exe 'silent file! '.a:fname
+  call s:hide_statusline()
 
   execute winnr('#') . 'wincmd w'
 
