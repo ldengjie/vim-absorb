@@ -560,6 +560,7 @@ function! s:absorb_on()
     endif
 
     if exists("#MiniBufExpl")
+		let g:miniBufExplStatusLineText=" "
         MBEClose
     endif
 
@@ -631,18 +632,8 @@ function! s:absorb_on()
                 "\'#','$','%','^','&','*','(',')','_','-','+','=',
                 "\'{','[','}',']','|','\',':',';','"','<',',','>','.','?','/'
     for opi in oplist
-        exe 'map <silent> <c-w>'.opi.' : wincmd '.opi.'<cr>'
+        exe 'map <expr> <silent> <c-w>'.opi.' ":<c-u>".v:count." wincmd '.opi.'<cr>"'
     endfor
-    "for opi in oplist
-    "for count in range(9)
-    "exe 'map <c-w> '.count.' '.opi.' :<c-\><c-n>'.count.' wincmd '.opi.'<cr>'
-    "endfor
-    "endfor
-    "for opi in oplist
-    "for count in range(9)
-    "exe 'map '.count.'<c-w> '.opi.' :<c-\><c-n>'.count.' wincmd '.opi.'<cr>'
-    "endfor
-    "endfor
     cabbrev  wincmd Wincmd
     command! -nargs=1 -count=0 -bar Wincmd call <sid>Wincmd(<count>,<q-args>)
 
@@ -650,9 +641,17 @@ function! s:absorb_on()
 
     cabbrev <expr> q <SID>quitall()
     cabbrev <expr> wq <SID>wquitall()
+    cabbrev cclose cclose <bar> call absorb#reSizeWin()
+    cabbrev bn call absorb#backtoinner() <bar> bn
+    cabbrev bp call absorb#backtoinner() <bar> bp
+    cabbrev b call absorb#backtoinner() <bar> b
+    cabbrev bd call absorb#backtoinner() <bar> bd
+    cabbrev bdel call absorb#backtoinner() <bar> bdel
+
     cabbrev MBEToggle call absorb#backtoinner() <bar> MBEToggle
     cabbrev MBEClose call absorb#backtoinner() <bar> MBEClose
     cabbrev MBEOpen call absorb#backtoinner() <bar> MBEOpen
+    cabbrev MBEBd call absorb#backtoinner() <bar> MBEbd
     cabbrev NERDTreeToggle call <SID>nerdtreeToggle('toggle')
     cabbrev NERDTree call <SID>nerdtreeToggle('toggle')
     cabbrev NERDTreeClose call <SID>nerdtreeToggle('toggle')

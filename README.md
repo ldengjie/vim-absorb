@@ -16,7 +16,7 @@ Use your favorite plugin manager.
 Usage
 -----
 
-<C-W> supported: h j k l v s o z c
+ supported: \<C-W\> h j k l v s o z c
 
 Configuration
 -------------
@@ -25,11 +25,7 @@ Configuration
 let g:absorb_width  = '80%'  
 let g:absorb_height = '90%'  
 let g:absorb_linenr = 0
-nmap <silent> cq :cclose<CR>:call absorb#reSizeWin()<CR>  
-nnoremap  <Leader>n :NERDTreeToggle <bar>call absorb#reSizeWin()<CR>  
-nnoremap  <Leader>t :call tagbar#ToggleWindow()<CR>:call absorb#reSizeWin()<CR>  
 autocmd VimEnter * call absorb#execute()  
-nmap <silent> XX :call absorb#execute()<CR>  
 ```
 
 screenshots
