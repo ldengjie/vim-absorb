@@ -42,8 +42,11 @@ function! s:init_win(command,fname)
     normal! gg
     setlocal nomodifiable
   endif
+
   exe 'silent file! '.a:fname
   call s:hide_statusline()
+
+  exe 'set modifiable | normal! gg dG | set no modifiable'
 
   execute winnr('#') . 'wincmd w'
 
@@ -254,7 +257,11 @@ function! s:list_bufnames(winidlist) dict
     return map(deepcopy(self[a:winidlist]()),'bufname(winbufnr(v:val))')
 endfunction
 function! s:wins_count(winidlist) dict
-    return len(self[a:winidlist]())
+	let wc=len(self[a:winidlist]())
+	if a:winidlist=='i_winids' && index(t:absorb_wins.i_bufnames(),'-MiniBufExplorer-')>=0
+		let wc -= 1
+	endif
+    return wc
 endfunction
 function! s:wins_united_screenpos(winidlist) dict
     let rows=[]
