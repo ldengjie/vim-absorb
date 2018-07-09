@@ -28,7 +28,7 @@ set cpo&vim
   ""execute 'win_gotoid('..')'
 "endfunction
 
-function! s:init_win(command,fname)
+function! s:init_win(command)
   execute a:command
   setlocal buftype=nofile bufhidden=wipe nomodifiable nobuflisted noswapfile nonu nornu nocursorline nocursorcolumn winfixwidth winfixheight statusline=\
   setlocal colorcolumn=
@@ -43,7 +43,6 @@ function! s:init_win(command,fname)
     setlocal nomodifiable
   endif
 
-  exe 'silent file! '.a:fname
   call s:hide_statusline()
 
   exe 'set modifiable | normal! gg dG | set no modifiable'
@@ -182,53 +181,39 @@ fu! s:winSkip(count,opr)
         let pasteValue=&paste
         set paste
         let t:skip_route={
-                    \ t:lwin_bufname : {'h':t:lwin_bufname,'l':t:lwin_bufname,'j':t:twin_bufname,'k':t:bwin_bufname,'to':'l'},
-                    \ t:rwin_bufname : {'h':t:rwin_bufname,'l':t:rwin_bufname,'j':t:twin_bufname,'k':t:bwin_bufname,'to':'h'},
-                    \ t:twin_bufname : {'h':t:rwin_bufname,'l':t:lwin_bufname,'j':t:twin_bufname,'k':t:twin_bufname,'to':'j'},
-                    \ t:bwin_bufname : {'h':t:rwin_bufname,'l':t:lwin_bufname,'j':t:bwin_bufname,'k':t:bwin_bufname,'to':'k'}
+                    \ t:lwin_winid : {'h':t:lwin_winid,'l':t:lwin_winid,'j':t:twin_winid,'k':t:bwin_winid,'to':'l'},
+                    \ t:rwin_winid : {'h':t:rwin_winid,'l':t:rwin_winid,'j':t:twin_winid,'k':t:bwin_winid,'to':'h'},
+                    \ t:twin_winid : {'h':t:rwin_winid,'l':t:lwin_winid,'j':t:twin_winid,'k':t:twin_winid,'to':'j'},
+                    \ t:bwin_winid : {'h':t:rwin_winid,'l':t:lwin_winid,'j':t:bwin_winid,'k':t:bwin_winid,'to':'k'}
                     \}
         for ci in range(1,a:count)
             exe 'wincmd '.a:opr
-            let last_winid=win_getid(winnr('#'))
+            let last_winnr=winnr('#')
+            let last_winid=win_getid(last_winnr)
             let cur_winid=win_getid()
             let s_winids=t:absorb_wins.s_winids()
-            let s_bufnames=t:absorb_wins.s_bufnames()
             let s_index=index(s_winids,cur_winid)
-            let g:s_index=s_index
-            let g:s_winids=s_winids
-            let g:cur_winid=cur_winid
             if s_index>=0
 
-                let s_bufnames=t:absorb_wins.s_bufnames()
-                let s_bufname2winid={}
-                let g:s_bufnames=s_bufnames
-                for s_i in range(len(s_bufnames))
-                    let s_bufname2winid[s_bufnames[s_i]]=s_winids[s_i]
-                endfor
-
-                let cur_name=s_bufnames[s_index]
-                let route_bufname=t:skip_route[cur_name][a:opr]
-                let route_winnr=win_id2win(s_bufname2winid[route_bufname])
+                let route_winnr=win_id2win(t:skip_route[cur_winid][a:opr])
 
                 exe route_winnr.' wincmd w'
                 exe 'wincmd ' . a:opr
                 let midway_winid=win_getid()
                 "如果跳不出去，说明是尽头，应返回
                 if midway_winid==cur_winid
-                    exe win_id2win(last_winid).' wincmd w'
+                    exe last_winnr.' wincmd w'
                     break
                 "如果跳调到另一个边框，说明是outer往inner跳转时出错,应跳到inner
                 elseif index(s_winids,midway_winid)>=0
-                    let cur_name=s_bufnames[index(s_winids,midway_winid)]
-                    let route_to=t:skip_route[cur_name]['to']
+                    let route_to=t:skip_route[midway_winid]['to']
                     exe 'wincmd ' . route_to
                 endif
             endif
         endfor
         let final_winid=win_getid()
         if index(s_winids,final_winid)>=0
-            let cur_name=s_bufnames[index(s_winids,final_winid)]
-            let route_to=t:skip_route[cur_name]['to']
+            let route_to=t:skip_route[final_winid]['to']
             exe 'wincmd ' . route_to
         elseif &filetype=='minibufexpl'
             exe 'wincmd j'
@@ -333,17 +318,16 @@ function! s:calWinSize()
     let absorb_ne_w=nerdtree_open ? nt_max_w : 0
     let absorb_ta_w=tagbar_open ? nt_max_w : 0
 
-    let s_winids=t:absorb_wins.s_winids()
-    let s_bufnames=t:absorb_wins.s_bufnames()
+    let s_winids=t:absorb_wins.s_winids_init
     
     if nerdtree_open 
         call add(absorb_7,{'winid':win_getid(bufwinnr(t:NERDTreeBufName)),'height':screenHeight,'width':absorb_ne_w})
     endif
-    call add(absorb_7,{'winid':s_winids[index(s_bufnames,t:twin_bufname)],'height':l:absorb_5[0][0],'width':absorb_t_w})
-    call add(absorb_7,{'winid':s_winids[index(s_bufnames,t:lwin_bufname)],'height':l:absorb_5[1][0],'width':absorb_l_w})
-    call add(absorb_7,{'winid':'iwin'                            ,'height':l:absorb_5[2][0],'width':absorb_i_w})
-    call add(absorb_7,{'winid':s_winids[index(s_bufnames,t:rwin_bufname)],'height':l:absorb_5[3][0],'width':absorb_r_w})
-    call add(absorb_7,{'winid':s_winids[index(s_bufnames,t:bwin_bufname)],'height':l:absorb_5[4][0],'width':absorb_b_w})
+    call add(absorb_7,{'winid':s_winids[2],'height':l:absorb_5[0][0],'width':absorb_t_w})
+    call add(absorb_7,{'winid':s_winids[0],'height':l:absorb_5[1][0],'width':absorb_l_w})
+    call add(absorb_7,{'winid':'iwin'     ,'height':l:absorb_5[2][0],'width':absorb_i_w})
+    call add(absorb_7,{'winid':s_winids[1],'height':l:absorb_5[3][0],'width':absorb_r_w})
+    call add(absorb_7,{'winid':s_winids[3],'height':l:absorb_5[4][0],'width':absorb_b_w})
     if tagbar_open 
         call add(absorb_7,{'winid':win_getid(bufwinnr('__Tagbar__')),'height':screenHeight,'width':absorb_ta_w})
     endif
@@ -396,6 +380,7 @@ function! s:toggleMaxWin()
                     execute win_id2win(t:winMax_orig_winid) . 'wincmd w'
                     execute 'b'.winMax_cur_bufnr
                     execute printf('normal! %dG%d|', l:winMax_new_line, l:winMax_new_col)
+                    execute 'normal! zz'
                 endif
                 execute 'tabclose '.l:winMax_new_tabnr
             endif
@@ -427,6 +412,7 @@ function! s:maxWin()
         let t:winMax=l:winMax_id
         let t:new_tab=l:winMax_id
         let t:winMax_orig_winid=l:winMax_orig_winid_tmp
+        execute 'normal! zz'
     endif
 endfunction
 
@@ -461,13 +447,13 @@ endfu
 
 function! s:turnOffTmuxStatus()
     if exists('$TMUX')
-        silent !tmux set status off
+        silent !tmux set status off > /dev/null
         silent !tmux list-panes -F '\#F' | grep -q Z && tmux resize-pane -Z
     endif
 endfunction
 function! s:turnOnTmuxStatus()
     if exists('$TMUX')
-        silent !tmux set status on 
+        silent !tmux set status on > /dev/null
         silent !tmux list-panes -F '\#F' | grep -q Z && tmux resize-pane -Z
     endif
 endfunction
@@ -478,11 +464,10 @@ fu! s:moveBuffer()
             set paste
             let orig_winid=win_getid()
             let orig_bufnr=winbufnr(0)
-            let orig_bufname=bufname("%")
             let wintype=s:wintype(0)
             if wintype=='surrounding'
-                let s_bufnames=[t:lwin_bufname,t:rwin_bufname,t:twin_bufname,t:bwin_bufname]
-                if index(s_bufnames,orig_bufname)<0
+                let s_winids_init=t:absorb_wins.s_winids_init
+                if index(s_winids_init,orig_winid)<0
                     call absorb#backtoinner()
                     exe 'wincmd s'
                     exe 'wincmd j'
@@ -594,13 +579,12 @@ function! s:absorb_on()
         set guioptions-=L
     endif
 
-    let t:lwin_bufname='lwin'.localtime()
-    let t:rwin_bufname='rwin'.localtime()
-    let t:twin_bufname='twin'.localtime()
-    let t:bwin_bufname='bwin'.localtime()
-
+    let t:lwin_winid = s:init_win('vertical topleft new')
+    let t:rwin_winid = s:init_win('vertical botright new')
+    let t:twin_winid = s:init_win('topleft new')
+    let t:bwin_winid = s:init_win('botright new')
     let t:absorb_wins = {
-                \ 's_winids_init' : [s:init_win('vertical topleft new',t:lwin_bufname),s:init_win('vertical botright new',t:rwin_bufname),s:init_win('topleft new',t:twin_bufname),s:init_win('botright new',t:bwin_bufname)],
+                \ 's_winids_init' : [t:lwin_winid,t:rwin_winid,t:twin_winid,t:bwin_winid],
                 \ 's_winids' : function("s:get_winids",['surrounding']),
                 \ 's_bufnames' : function('s:list_bufnames',['s_winids']),
                 \ 's_wins_count' : function("s:wins_count",["s_winids"]),
