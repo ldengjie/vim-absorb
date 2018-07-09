@@ -391,9 +391,10 @@ function! s:toggleMaxWin()
             if exists("l:winMax_new_tabnr")
                 "是在新tab里操作时
                 if l:winMax_orig_tabnr!=l:curtab
+                    let t:winMax_cur_bufnr=winbufnr(0)
                     execute 'normal! '.l:winMax_orig_tabnr.'gt'
                     execute win_id2win(t:winMax_orig_winid) . 'wincmd w'
-                    execute 'b'.t:winMax_orig_bufnr
+                    execute 'b'.t:winMax_cur_bufnr
                     execute printf('normal! %dG%d|', l:winMax_new_line, l:winMax_new_col)
                 endif
                 execute 'tabclose '.l:winMax_new_tabnr
@@ -417,18 +418,15 @@ function! s:maxWin()
     if t:absorb_wins.i_wins_count()>1 || t:absorb_wins.o_wins_count()>0
         let l:winMax_id=localtime()
         let l:winMax_orig_winid_tmp=win_getid()
-        let l:winMax_orig_bufnr_tmp=winbufnr(0)
 
         let t:winMax=l:winMax_id
         let t:orig_tab=l:winMax_id
         let t:winMax_orig_winid=l:winMax_orig_winid_tmp
-        let t:winMax_orig_bufnr=l:winMax_orig_bufnr_tmp
         tab split
         call s:absorb_on()
         let t:winMax=l:winMax_id
         let t:new_tab=l:winMax_id
         let t:winMax_orig_winid=l:winMax_orig_winid_tmp
-        let t:winMax_orig_bufnr=l:winMax_orig_bufnr_tmp
     endif
 endfunction
 
