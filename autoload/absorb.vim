@@ -391,10 +391,10 @@ function! s:toggleMaxWin()
             if exists("l:winMax_new_tabnr")
                 "是在新tab里操作时
                 if l:winMax_orig_tabnr!=l:curtab
-                    let t:winMax_cur_bufnr=winbufnr(0)
+                    let winMax_cur_bufnr=winbufnr(0)
                     execute 'normal! '.l:winMax_orig_tabnr.'gt'
                     execute win_id2win(t:winMax_orig_winid) . 'wincmd w'
-                    execute 'b'.t:winMax_cur_bufnr
+                    execute 'b'.winMax_cur_bufnr
                     execute printf('normal! %dG%d|', l:winMax_new_line, l:winMax_new_col)
                 endif
                 execute 'tabclose '.l:winMax_new_tabnr
