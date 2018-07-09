@@ -641,7 +641,9 @@ function! s:absorb_on()
     cabbrev MBEToggle call absorb#backtoinner() <bar> MBEToggle
     cabbrev MBEClose call absorb#backtoinner() <bar> MBEClose
     cabbrev MBEOpen call absorb#backtoinner() <bar> MBEOpen
-    cabbrev MBEBd call absorb#backtoinner() <bar> MBEbd
+    cabbrev MBEbd call absorb#backtoinner() <bar> MBEbd
+    cabbrev MBEbn call absorb#backtoinner() <bar> MBEbn
+    cabbrev MBEbp call absorb#backtoinner() <bar> MBEbp
     cabbrev NERDTreeToggle call <SID>nerdtreeToggle('toggle')
     cabbrev NERDTree call <SID>nerdtreeToggle('toggle')
     cabbrev NERDTreeClose call <SID>nerdtreeToggle('toggle')
