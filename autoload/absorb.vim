@@ -339,6 +339,12 @@ function! absorb#reSizeWin()
     "if exists("#absorb")
     "exe 'echo "'.localtime().'"'
     call absorb#backtoinner()
+
+    let pasteValue=&paste
+    set paste
+    cclose
+    let &paste=pasteValue
+
     let l:layout=s:calWinSize()
 
     for wininfo in l:layout
@@ -604,7 +610,7 @@ function! s:absorb_on()
 
     augroup absorb
         autocmd!
-        autocmd VimResized  *        cclose | call absorb#reSizeWin()
+        autocmd VimResized  *        call absorb#reSizeWin()
         autocmd ColorScheme *        call s:tranquilize()
         autocmd BufWinEnter *        call s:hide_linenr() | call s:hide_statusline() 
         autocmd WinEnter,WinLeave *  call s:hide_statusline()| call s:hide_cursorline()
@@ -638,7 +644,6 @@ function! s:absorb_on()
     cabbrev bd call absorb#backtoinner() <bar> bd
     cabbrev bdel call absorb#backtoinner() <bar> bdel
 
-    cabbrev Ag cclose <bar> Ag
     cabbrev MBEToggle call absorb#backtoinner() <bar> MBEToggle
     cabbrev MBEClose call absorb#backtoinner() <bar> MBEClose
     cabbrev MBEOpen call absorb#backtoinner() <bar> MBEOpen
