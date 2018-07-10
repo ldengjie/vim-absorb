@@ -42,7 +42,7 @@ au FileType * echo "FileType ".win_getid()." ".winnr()." ".winbufnr("")." ".bufn
 au Syntax * echo "Syntax ".win_getid()." ".winnr()." ".winbufnr("")." ".bufname("")
 au EncodingChanged * echo "EncodingChanged ".win_getid()." ".winnr()." ".winbufnr("")." ".bufname("")
 au TermChanged * echo "TermChanged ".win_getid()." ".winnr()." ".winbufnr("")." ".bufname("")
-au OptionSet * echo "OptionSet ".win_getid()." ".winnr()." ".winbufnr("")." ".bufname("")
+"au OptionSet * echo "OptionSet ".win_getid()." ".winnr()." ".winbufnr("")." ".bufname("")
 au VimEnter * echo "VimEnter ".win_getid()." ".winnr()." ".winbufnr("")." ".bufname("")
 au GUIEnter * echo "GUIEnter ".win_getid()." ".winnr()." ".winbufnr("")." ".bufname("")
 au GUIFailed * echo "GUIFailed ".win_getid()." ".winnr()." ".winbufnr("")." ".bufname("")

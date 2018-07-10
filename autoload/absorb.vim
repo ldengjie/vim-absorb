@@ -34,6 +34,8 @@ function! s:init_win(command)
   setlocal colorcolumn=
   let winid = win_getid()
 
+  autocmd CursorMoved <buffer>        call absorb#backtoinner()
+
   " To hide scrollbars of win windows in GVim
   let diff = winheight(0) - line('$') - (has('gui_running') ? 2 : 0)
   if diff > 0
@@ -47,7 +49,7 @@ function! s:init_win(command)
 
   exe 'set modifiable | normal! gg dG | set no modifiable'
 
-  execute winnr('#') . 'wincmd w'
+  call s:orig_cmd(winnr('#') . 'wincmd w')
 
   return winid
 endfunction
@@ -90,16 +92,9 @@ fu! s:closeinner()
     let i_winids_sorted = sort(t:absorb_wins.i_winids())
     for winidi in i_winids_sorted
         if winidi != cur_winid
-            exe win_id2win(winidi).' wincmd c'
+            call s:orig_cmd(win_id2win(winidi).' wincmd c')
         endif
     endfor
-endfu
-fu! s:closeouter()
-    let o_winids = t:absorb_wins.o_winids()
-    for winidi in o_winids
-        exe win_id2win(winidi).' wincmd c'
-    endfor
-    call absorb#reSizeWin()
 endfu
 fu! s:wintype(winid)
     if a:winid==0
@@ -122,7 +117,7 @@ fu! absorb#backtoinner()
     if s:wintype(0)!='inner'
         let i_winids_sorted = sort(t:absorb_wins.i_winids())
         for i_winid in i_winids_sorted
-            exe win_id2win(i_winid).' wincmd w'
+            call s:orig_cmd(win_id2win(i_winid).' wincmd w')
             if &filetype!='minibufexpl'
                 break
             endif
@@ -132,95 +127,89 @@ fu! absorb#backtoinner()
 endfu
 fu! s:Wincmd(count,opr)
     let opr=a:opr[0]
+    if index(['h','j','k','l'],opr)>=0
+        call s:winSkip(max([a:count,1]),opr)
+    elseif index(['v','s'],opr)>=0
+        call s:orig_cmd('wincmd '.opr)
+    elseif opr == 'c'
+        let target_winnr=a:count==0 ? winnr() : a:count
+        let target_wintype=s:wintype(target_winnr)
+        if target_wintype=='surrounding'
+            throw 'absorb: Can NOT close surrounding windows'
+        elseif target_wintype=='outer'
+            try
+                call absorb#backtoinner()
+                call s:orig_cmd(target_winnr.' wincmd '.opr)
+                call absorb#reSizeWin()
+            catch /./
+            endtry
+        else
+            if t:absorb_wins.i_wins_count() >1
+				call s:orig_cmd(target_winnr.' wincmd '.opr)
+            else
+                throw 'absorb: Can NOT close the last inner window'
+            endif
+        endif
+    elseif opr == 'o'
+        call absorb#backtoinner()
+        call s:closeinner()
+    elseif opr == 'z'
+        call absorb#backtoinner()
+        call s:toggleMaxWin()
+    elseif opr == 'r'
+        call absorb#reSizeWin()
+    else
+        throw 'absorb: do NOT support ['.opr.']'
+    endif
+endfu
+fu! s:orig_cmd(cmdstr)
     try
         let pasteValue=&paste
         set paste
-        if index(['h','j','k','l'],opr)>=0
-            call s:winSkip(max([a:count,1]),opr)
-        elseif index(['v','s'],opr)>=0
-            exe 'wincmd '.opr
-        elseif opr == 'c'
-            let target_winnr=a:count
-            let cur_wintype=s:wintype(target_winnr)
-            if cur_wintype=='surrounding'
-                throw 'absorb: Can NOT close surrounding windows'
-            elseif cur_wintype=='outer'
-                let target_winnr=absorb#backtoinner()
-                exe target_winnr.' wincmd '.opr
-                call absorb#reSizeWin()
-            else
-                if t:absorb_wins.i_wins_count() >1
-                    if target_winnr!=0
-                        exe target_winnr.' wincmd '.opr
-                    else
-                        exe 'wincmd '.opr
-                    endif
-                else
-                    throw 'absorb: Can NOT close the last inner window'
-                endif
-            endif
-        elseif opr == 'o'
-            call absorb#backtoinner()
-            call s:closeinner()
-        elseif opr == 'z'
-            call absorb#backtoinner()
-            "call s:closeinner()
-            "call s:closeouter()
-            call s:toggleMaxWin()
-        elseif opr == 'r'
-            call absorb#reSizeWin()
-        else
-            throw 'absorb: do NOT support ['.opr.']'
-        endif
+        exe a:cmdstr
     finally
         let &paste=pasteValue
     endtry
 endfu
 fu! s:winSkip(count,opr)
-    try
-        let pasteValue=&paste
-        set paste
-        let t:skip_route={
-                    \ t:lwin_winid : {'h':t:lwin_winid,'l':t:lwin_winid,'j':t:twin_winid,'k':t:bwin_winid,'to':'l'},
-                    \ t:rwin_winid : {'h':t:rwin_winid,'l':t:rwin_winid,'j':t:twin_winid,'k':t:bwin_winid,'to':'h'},
-                    \ t:twin_winid : {'h':t:rwin_winid,'l':t:lwin_winid,'j':t:twin_winid,'k':t:twin_winid,'to':'j'},
-                    \ t:bwin_winid : {'h':t:rwin_winid,'l':t:lwin_winid,'j':t:bwin_winid,'k':t:bwin_winid,'to':'k'}
-                    \}
-        for ci in range(1,a:count)
-            exe 'wincmd '.a:opr
-            let last_winnr=winnr('#')
-            let last_winid=win_getid(last_winnr)
-            let cur_winid=win_getid()
-            let s_winids=t:absorb_wins.s_winids()
-            let s_index=index(s_winids,cur_winid)
-            if s_index>=0
+    let t:skip_route={
+                \ t:lwin_winid : {'h':t:lwin_winid,'l':t:lwin_winid,'j':t:twin_winid,'k':t:bwin_winid,'to':'l'},
+                \ t:rwin_winid : {'h':t:rwin_winid,'l':t:rwin_winid,'j':t:twin_winid,'k':t:bwin_winid,'to':'h'},
+                \ t:twin_winid : {'h':t:rwin_winid,'l':t:lwin_winid,'j':t:twin_winid,'k':t:twin_winid,'to':'j'},
+                \ t:bwin_winid : {'h':t:rwin_winid,'l':t:lwin_winid,'j':t:bwin_winid,'k':t:bwin_winid,'to':'k'}
+                \}
+    for ci in range(1,a:count)
+        call s:orig_cmd('wincmd '.a:opr)
+        let last_winnr=winnr('#')
+        let last_winid=win_getid(last_winnr)
+        let cur_winid=win_getid()
+        let s_winids=t:absorb_wins.s_winids()
+        let s_index=index(s_winids,cur_winid)
+        if s_index>=0
 
-                let route_winnr=win_id2win(t:skip_route[cur_winid][a:opr])
+            let route_winnr=win_id2win(t:skip_route[cur_winid][a:opr])
 
-                exe route_winnr.' wincmd w'
-                exe 'wincmd ' . a:opr
-                let midway_winid=win_getid()
-                "如果跳不出去，说明是尽头，应返回
-                if midway_winid==cur_winid
-                    exe last_winnr.' wincmd w'
-                    break
+            call s:orig_cmd(route_winnr.' wincmd w')
+            call s:orig_cmd('wincmd '.a:opr)
+            let midway_winid=win_getid()
+            "如果跳不出去，说明是尽头，应返回
+            if midway_winid==cur_winid
+                call s:orig_cmd(last_winnr.' wincmd w')
+                break
                 "如果跳调到另一个边框，说明是outer往inner跳转时出错,应跳到inner
-                elseif index(s_winids,midway_winid)>=0
-                    let route_to=t:skip_route[midway_winid]['to']
-                    exe 'wincmd ' . route_to
-                endif
+            elseif index(s_winids,midway_winid)>=0
+                let route_to=t:skip_route[midway_winid]['to']
+                call s:orig_cmd('wincmd '.route_to)
             endif
-        endfor
-        let final_winid=win_getid()
-        if index(s_winids,final_winid)>=0
-            let route_to=t:skip_route[final_winid]['to']
-            exe 'wincmd ' . route_to
-        elseif &filetype=='minibufexpl'
-            exe 'wincmd j'
         endif
-    finally
-        let &paste=pasteValue
-    endtry
+    endfor
+    let final_winid=win_getid()
+    if index(s_winids,final_winid)>=0
+        let route_to=t:skip_route[final_winid]['to']
+        call s:orig_cmd('wincmd '.route_to)
+    elseif &filetype=='minibufexpl'
+        call s:orig_cmd('wincmd j')
+    endif
 endfu
 
 function! s:get_winids(area) dict
@@ -291,7 +280,7 @@ endfunction
 
 function! s:calWinSize()
     let l:absorb_5 = s:initLayout()
-    let absorb_7=[]
+    let absorb_8=[]
     let screenHeight=2+l:absorb_5[0][0]+l:absorb_5[1][0]+l:absorb_5[4][0]
     let screenWidth=l:absorb_5[0][1]
 
@@ -301,6 +290,23 @@ function! s:calWinSize()
         let nerdtree_open = 0
     endif
     let tagbar_open = bufwinnr('__Tagbar__') != -1
+	let qf_open=0
+	if &ft != 'qf'
+		let o_winids=t:absorb_wins.o_winids()
+		let cur_winnr=winnr()
+		for o_winid in o_winids
+			call s:orig_cmd(win_id2win(o_winid).' wincmd w')
+			if &ft == 'qf'
+				let qf_open=1
+				let qf_winid=o_winid
+				break
+			endif
+		endfor
+		call s:orig_cmd(cur_winnr.' wincmd w')
+	else
+		let qf_open=1
+		let qf_winid=win_getid()
+	endif
 
     let absorb_ne_w=nerdtree_open ? g:NERDTreeWinSize : 0
     let absorb_ta_w=tagbar_open ? g:tagbar_width : 0
@@ -315,48 +321,50 @@ function! s:calWinSize()
     let absorb_b_w=absorb_t_w
     let absorb_i_w=screenWidth-absorb_ne_w-absorb_ta_w-absorb_l_w-absorb_r_w-2-nt_lin_w
 
+	let absorb_m_h=5
+    let absorb_b_h= qf_open?max([l:absorb_5[4][0]-absorb_m_h,1]):l:absorb_5[4][0]
+
     let absorb_ne_w=nerdtree_open ? nt_max_w : 0
     let absorb_ta_w=tagbar_open ? nt_max_w : 0
 
     let s_winids=t:absorb_wins.s_winids_init
     
+    if qf_open 
+        call add(absorb_8,{'winid':qf_winid,'height':absorb_m_h,'width':0})
+    endif
     if nerdtree_open 
-        call add(absorb_7,{'winid':win_getid(bufwinnr(t:NERDTreeBufName)),'height':screenHeight,'width':absorb_ne_w})
+        call add(absorb_8,{'winid':win_getid(bufwinnr(t:NERDTreeBufName)),'height':0,'width':absorb_ne_w})
     endif
-    call add(absorb_7,{'winid':s_winids[2],'height':l:absorb_5[0][0],'width':absorb_t_w})
-    call add(absorb_7,{'winid':s_winids[0],'height':l:absorb_5[1][0],'width':absorb_l_w})
-    call add(absorb_7,{'winid':'iwin'     ,'height':l:absorb_5[2][0],'width':absorb_i_w})
-    call add(absorb_7,{'winid':s_winids[1],'height':l:absorb_5[3][0],'width':absorb_r_w})
-    call add(absorb_7,{'winid':s_winids[3],'height':l:absorb_5[4][0],'width':absorb_b_w})
+    call add(absorb_8,{'winid':s_winids[2],'height':l:absorb_5[0][0],'width':0})
+    call add(absorb_8,{'winid':s_winids[0],'height':0,'width':absorb_l_w})
+    call add(absorb_8,{'winid':'iwin'     ,'height':l:absorb_5[2][0],'width':absorb_i_w})
+    call add(absorb_8,{'winid':s_winids[1],'height':0,'width':absorb_r_w})
+    call add(absorb_8,{'winid':s_winids[3],'height':absorb_b_h,'width':0})
     if tagbar_open 
-        call add(absorb_7,{'winid':win_getid(bufwinnr('__Tagbar__')),'height':screenHeight,'width':absorb_ta_w})
+        call add(absorb_8,{'winid':win_getid(bufwinnr('__Tagbar__')),'height':0,'width':absorb_ta_w})
     endif
-    let g:absorb_7=absorb_7
-    return absorb_7
+    let g:absorb_8=absorb_8
+    return absorb_8
 endfunction
 
 function! absorb#reSizeWin()
-    "if exists("#absorb")
-    "exe 'echo "'.localtime().'"'
-    call absorb#backtoinner()
-
-    let pasteValue=&paste
-    set paste
-    cclose
-    let &paste=pasteValue
-
-    let l:layout=s:calWinSize()
-
-    for wininfo in l:layout
-        let winid=wininfo.winid
-        if winid != 'iwin'
-            let winno=win_id2win(winid)
-            let height=wininfo.height
-            let width=wininfo.width
-            execute 'vertical '.winno.' resize ' . width
-            execute winno.' resize ' . height
-        endif
-    endfor
+	if exists("t:absorb_wins")
+		let l:layout=s:calWinSize()
+		for wininfo in l:layout
+			let winid=wininfo.winid
+			if winid != 'iwin'
+				let winno=win_id2win(winid)
+				let height=wininfo.height
+				let width=wininfo.width
+				if width>0
+					execute 'vertical '.winno.' resize ' . width
+				endif
+				if height>0
+					execute winno.' resize ' . height
+				endif
+			endif
+		endfor
+	endif
 endfunction
 
 "-- 最大化当前buffer窗口 --
@@ -383,12 +391,12 @@ function! s:toggleMaxWin()
                 if l:winMax_orig_tabnr!=l:curtab
                     let winMax_cur_bufnr=winbufnr(0)
                     execute 'normal! '.l:winMax_orig_tabnr.'gt'
-                    execute win_id2win(t:winMax_orig_winid) . 'wincmd w'
-                    execute 'b'.winMax_cur_bufnr
+                    call s:orig_cmd(win_id2win(t:winMax_orig_winid) . 'wincmd w')
+                    call s:orig_cmd('b'.winMax_cur_bufnr)
                     execute printf('normal! %dG%d|', l:winMax_new_line, l:winMax_new_col)
                     execute 'normal! zz'
                 endif
-                execute 'tabclose '.l:winMax_new_tabnr
+                call s:orig_cmd('tabclose '.l:winMax_new_tabnr)
             endif
         endif
 
@@ -465,29 +473,23 @@ function! s:turnOnTmuxStatus()
 endfunction
 fu! s:moveBuffer()
     if exists("t:absorb_wins")
-        try
-            let pasteValue=&paste
-            set paste
-            let orig_winid=win_getid()
-            let orig_bufnr=winbufnr(0)
-            let wintype=s:wintype(0)
-            if wintype=='surrounding'
-                let s_winids_init=t:absorb_wins.s_winids_init
-                if index(s_winids_init,orig_winid)<0
-                    call absorb#backtoinner()
-                    exe 'wincmd s'
-                    exe 'wincmd j'
-                    exe 'b '.orig_bufnr
-                    exe win_id2win(orig_winid).' wincmd c'
-                endif
+        let orig_winid=win_getid()
+        let orig_bufnr=winbufnr(0)
+        let wintype=s:wintype(0)
+        if wintype=='surrounding'
+            let s_winids_init=t:absorb_wins.s_winids_init
+            if index(s_winids_init,orig_winid)<0
+                call absorb#backtoinner()
+                call s:orig_cmd('wincmd s')
+                call s:orig_cmd('wincmd j')
+                call s:orig_cmd('b '.orig_bufnr)
+                call s:orig_cmd(win_id2win(orig_winid).' wincmd c')
             endif
-        finally
-            let &paste=pasteValue
-        endtry
+        endif
     endif
 endfu
 fu! s:showWinInfo()
-    exe 'echo "==> '.s:wintype(0).' '.win_getid()." ".winnr()." ".winbufnr("")." ".bufname("").'"'
+    exe 'echo "==> wintype:'.s:wintype(0).' winid:'.win_getid()." winnr:".winnr()." winbufnr:".winbufnr("")." bufname:".bufname("").' o_win_count:'.t:absorb_wins.o_wins_count().'"'
 endfu
 fu! s:hide_cursorline()
     if &filetype=='minibufexpl'
@@ -495,30 +497,10 @@ fu! s:hide_cursorline()
     endif
     if exists("t:absorb_wins")
         let wintype=s:wintype(0)
-        if wintype!='inner' || &filetype=='minibufexpl'
+        if wintype!='inner'
             set nocursorline
         endif
     endif
-endfu
-fu! s:nerdtreeToggle(opr)
-    if a:opr=='toggle'
-        NERDTreeToggle
-    elseif a:opr=='open'
-        NERDTree
-    elseif a:opr=='close'
-        NERDTreeClose
-    endif
-    call absorb#reSizeWin()
-endfu
-fu! s:tagbarToggle(opr)
-    if a:opr=='toggle'
-        TagbarToggle
-    elseif a:opr=='open'
-        TagbarOpen
-    elseif a:opr=='close'
-        TagbarClose
-    endif
-    call absorb#reSizeWin()
 endfu
 
 function! s:absorb_on()
@@ -610,7 +592,6 @@ function! s:absorb_on()
 
     augroup absorb
         autocmd!
-        autocmd VimResized  *        call absorb#reSizeWin()
         autocmd ColorScheme *        call s:tranquilize()
         autocmd BufWinEnter *        call s:hide_linenr() | call s:hide_statusline() 
         autocmd WinEnter,WinLeave *  call s:hide_statusline()| call s:hide_cursorline()
@@ -619,6 +600,8 @@ function! s:absorb_on()
         endif
         autocmd QuitPre * call s:turnOnTmuxStatus()
         autocmd BufEnter *        call  s:moveBuffer()
+        "FileType for nerdtree, BufWinLeave for tagbar
+		autocmd VimResized,BufEnter,BufWinLeave,FileType *        call absorb#reSizeWin()
         "autocmd BufEnter *        call  s:showWinInfo()
     augroup END
 
@@ -637,7 +620,6 @@ function! s:absorb_on()
 
     cabbrev <expr> q <SID>quitall()
     cabbrev <expr> wq <SID>wquitall()
-    cabbrev cclose cclose <bar> call absorb#reSizeWin()
     cabbrev bn call absorb#backtoinner() <bar> bn
     cabbrev bp call absorb#backtoinner() <bar> bp
     cabbrev b call absorb#backtoinner() <bar> b
@@ -650,12 +632,6 @@ function! s:absorb_on()
     cabbrev MBEbd call absorb#backtoinner() <bar> MBEbd
     cabbrev MBEbn call absorb#backtoinner() <bar> MBEbn
     cabbrev MBEbp call absorb#backtoinner() <bar> MBEbp
-    cabbrev NERDTreeToggle call <SID>nerdtreeToggle('toggle')
-    cabbrev NERDTree call <SID>nerdtreeToggle('toggle')
-    cabbrev NERDTreeClose call <SID>nerdtreeToggle('toggle')
-    cabbrev TagbarToggle call <SID>tagbarToggle('toggle')
-    cabbrev TagbarOpen call <SID>tagbarToggle('open')
-    cabbrev TagbarClose call <SID>tagbarToggle('close')
 
     if exists('g:absorb_callbacks[0]')
         call g:absorb_callbacks[0]()
@@ -668,11 +644,20 @@ endfunction
 function! absorb#execute()
     call s:absorb_on()
     "exe "highlight VertSplit ctermbg='red' | highlight StatusLine ctermbg='black' | highlight StatusLineNC ctermbg='white'"
+	exe 'MBEOpen'
     let l:hasFile=len(bufname("%"))
     if !l:hasFile
-        exe "NERDTree"
+		exe "NERDTree"
     endif
+	"call absorb#loopwin()
 endfunction
+"fu! absorb#loopwin()
+	"let cur_winnr=winnr()
+	"for wini in range(1,winnr('$'))
+		"call s:orig_cmd(wini.' wincmd w')
+	"endfor
+	"call s:orig_cmd(cur_winnr.' wincmd w')
+"endfu
 
 let &cpo = s:cpo_save
 unlet s:cpo_save
