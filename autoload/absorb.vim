@@ -89,10 +89,11 @@ endfunction
 
 fu! s:closeinner()
     let cur_winid=win_getid()
-    let i_winids_sorted = sort(t:absorb_wins.i_winids())
-    for winidi in i_winids_sorted
-        if winidi != cur_winid
-            call s:orig_cmd(win_id2win(winidi).' wincmd c')
+    let i_winids = t:absorb_wins.i_winids()
+    let i_bufnames= t:absorb_wins.i_bufnames()
+    for wini in range(len(i_winids))
+        if i_winids[wini] != cur_winid && i_bufnames[wini]!='-MiniBufExplorer-'
+            call s:orig_cmd(win_id2win(i_winids[wini]).' wincmd c')
         endif
     endfor
 endfu
@@ -132,7 +133,7 @@ fu! s:Wincmd(count,opr)
     elseif index(['v','s'],opr)>=0
         call s:orig_cmd('wincmd '.opr)
     elseif opr == 'c'
-        let target_winnr=a:count==0 ? winnr() : a:count
+        let target_winnr= a:count==0 ? winnr() : a:count
         let target_wintype=s:wintype(target_winnr)
         if target_wintype=='surrounding'
             throw 'absorb: Can NOT close surrounding windows'
