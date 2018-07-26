@@ -646,10 +646,11 @@ function! absorb#execute()
     call s:absorb_on()
     "exe "highlight VertSplit ctermbg='red' | highlight StatusLine ctermbg='black' | highlight StatusLineNC ctermbg='white'"
 	exe 'MBEOpen'
-    let l:hasFile=len(bufname("%"))
-    if !l:hasFile
+    "let l:hasFile=len(bufname("%"))
+    "if !l:hasFile
 		exe "NERDTree"
-    endif
+		exe "TagbarOpen"
+    "endif
 	"call absorb#loopwin()
 endfunction
 "fu! absorb#loopwin()
