@@ -146,7 +146,7 @@ fu! s:Wincmd(count,opr)
             endtry
         else
             if t:absorb_wins.i_wins_count() >1
-				call s:orig_cmd(target_winnr.' wincmd '.opr)
+                call s:orig_cmd(target_winnr.' wincmd '.opr)
             else
                 throw 'absorb: Can NOT close the last inner window'
             endif
@@ -232,10 +232,10 @@ function! s:list_bufnames(winidlist) dict
     return map(deepcopy(self[a:winidlist]()),'bufname(winbufnr(v:val))')
 endfunction
 function! s:wins_count(winidlist) dict
-	let wc=len(self[a:winidlist]())
-	if a:winidlist=='i_winids' && index(t:absorb_wins.i_bufnames(),'-MiniBufExplorer-')>=0
-		let wc -= 1
-	endif
+    let wc=len(self[a:winidlist]())
+    if a:winidlist=='i_winids' && index(t:absorb_wins.i_bufnames(),'-MiniBufExplorer-')>=0
+        let wc -= 1
+    endif
     return wc
 endfunction
 function! s:wins_united_screenpos(winidlist) dict
@@ -291,23 +291,23 @@ function! s:calWinSize()
         let nerdtree_open = 0
     endif
     let tagbar_open = bufwinnr('__Tagbar__') != -1
-	let qf_open=0
-	if &ft != 'qf'
-		let o_winids=t:absorb_wins.o_winids()
-		let cur_winnr=winnr()
-		for o_winid in o_winids
-			call s:orig_cmd(win_id2win(o_winid).' wincmd w')
-			if &ft == 'qf'
-				let qf_open=1
-				let qf_winid=o_winid
-				break
-			endif
-		endfor
-		call s:orig_cmd(cur_winnr.' wincmd w')
-	else
-		let qf_open=1
-		let qf_winid=win_getid()
-	endif
+    let qf_open=0
+    if &ft != 'qf'
+        let o_winids=t:absorb_wins.o_winids()
+        let cur_winnr=winnr()
+        for o_winid in o_winids
+            call s:orig_cmd(win_id2win(o_winid).' wincmd w')
+            if &ft == 'qf'
+                let qf_open=1
+                let qf_winid=o_winid
+                break
+            endif
+        endfor
+        call s:orig_cmd(cur_winnr.' wincmd w')
+    else
+        let qf_open=1
+        let qf_winid=win_getid()
+    endif
 
     let absorb_ne_w=nerdtree_open ? g:NERDTreeWinSize : 0
     let absorb_ta_w=tagbar_open ? g:tagbar_width : 0
@@ -322,7 +322,7 @@ function! s:calWinSize()
     let absorb_b_w=absorb_t_w
     let absorb_i_w=screenWidth-absorb_ne_w-absorb_ta_w-absorb_l_w-absorb_r_w-2-nt_lin_w
 
-	let absorb_m_h=5
+    let absorb_m_h=5
     let absorb_b_h= qf_open?max([l:absorb_5[4][0]-absorb_m_h,1]):l:absorb_5[4][0]
 
     let absorb_ne_w=nerdtree_open ? nt_max_w : 0
@@ -349,23 +349,29 @@ function! s:calWinSize()
 endfunction
 
 function! absorb#reSizeWin()
-	if exists("t:absorb_wins")
-		let l:layout=s:calWinSize()
-		for wininfo in l:layout
-			let winid=wininfo.winid
-			if winid != 'iwin'
-				let winno=win_id2win(winid)
-				let height=wininfo.height
-				let width=wininfo.width
-				if width>0
-					execute 'vertical '.winno.' resize ' . width
-				endif
-				if height>0
-					execute winno.' resize ' . height
-				endif
-			endif
-		endfor
-	endif
+    if exists("t:absorb_wins")
+        if (!exists('g:last_total_winnr')) || winnr('$') != g:last_total_winnr
+            let l:layout=s:calWinSize()
+            if (!exists('g:last_layout')) || g:last_layout!=l:layout
+                for wininfo in l:layout
+                    let winid=wininfo.winid
+                    if winid != 'iwin'
+                        let winno=win_id2win(winid)
+                        let height=wininfo.height
+                        let width=wininfo.width
+                        if width>0
+                            execute 'vertical '.winno.' resize ' . width
+                        endif
+                        if height>0
+                            execute winno.' resize ' . height
+                        endif
+                    endif
+                endfor
+                let g:last_layout=l:layout
+            endif
+            let g:last_total_winnr=winnr('$')
+        endif
+    endif
 endfunction
 
 "-- 最大化当前buffer窗口 --
@@ -540,7 +546,7 @@ function! s:absorb_on()
     endif
 
     if exists("#MiniBufExpl")
-		let g:miniBufExplStatusLineText=" "
+        let g:miniBufExplStatusLineText=" "
         MBEClose
     endif
 
@@ -602,7 +608,7 @@ function! s:absorb_on()
         autocmd QuitPre * call s:turnOnTmuxStatus()
         autocmd BufEnter *        call  s:moveBuffer()
         "FileType for nerdtree, BufWinLeave for tagbar
-		autocmd VimResized,BufEnter,BufWinLeave,FileType *        call absorb#reSizeWin()
+        autocmd VimResized,BufEnter,BufWinLeave,FileType *        call absorb#reSizeWin()
         "autocmd BufEnter *        call  s:showWinInfo()
     augroup END
 
@@ -645,20 +651,20 @@ endfunction
 function! absorb#execute()
     call s:absorb_on()
     "exe "highlight VertSplit ctermbg='red' | highlight StatusLine ctermbg='black' | highlight StatusLineNC ctermbg='white'"
-	exe 'MBEOpen'
+    exe 'MBEOpen'
     "let l:hasFile=len(bufname("%"))
     "if !l:hasFile
-		exe "NERDTree"
-		exe "TagbarOpen"
+        exe "NERDTree"
+        exe "TagbarOpen"
     "endif
-	"call absorb#loopwin()
+    "call absorb#loopwin()
 endfunction
 "fu! absorb#loopwin()
-	"let cur_winnr=winnr()
-	"for wini in range(1,winnr('$'))
-		"call s:orig_cmd(wini.' wincmd w')
-	"endfor
-	"call s:orig_cmd(cur_winnr.' wincmd w')
+    "let cur_winnr=winnr()
+    "for wini in range(1,winnr('$'))
+        "call s:orig_cmd(wini.' wincmd w')
+    "endfor
+    "call s:orig_cmd(cur_winnr.' wincmd w')
 "endfu
 
 let &cpo = s:cpo_save
