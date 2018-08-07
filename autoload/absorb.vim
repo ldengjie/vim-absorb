@@ -78,7 +78,7 @@ function! s:tranquilize()
 endfunction
 
 function! s:hide_statusline()
-  setlocal statusline=\ 
+  set statusline=\ 
 endfunction
 
 function! s:hide_linenr()
@@ -350,7 +350,7 @@ endfunction
 
 function! absorb#reSizeWin()
     if exists("t:absorb_wins")
-        if (!exists('g:last_total_winnr')) || winnr('$') != g:last_total_winnr
+        if (!exists('g:last_total_winnr')) || winnr('$') != g:last_total_winnr || (!exists('g:screen_size')) || g:screen_size!= [&columns,&lines] 
             let l:layout=s:calWinSize()
             if (!exists('g:last_layout')) || g:last_layout!=l:layout
                 for wininfo in l:layout
@@ -367,8 +367,23 @@ function! absorb#reSizeWin()
                         endif
                     endif
                 endfor
+                for wininfo in l:layout
+                    let winid=wininfo.winid
+                    if winid != 'iwin'
+                        let winno=win_id2win(winid)
+                        let height=wininfo.height
+                        let width=wininfo.width
+                        if width>0
+                            execute 'vertical '.winno.' resize ' . width
+                        endif
+                        if height>0
+                            execute winno.' resize ' . height
+                        endif
+                    endif
+                endfor
                 let g:last_layout=l:layout
             endif
+            let g:screen_size=[&columns,&lines]
             let g:last_total_winnr=winnr('$')
         endif
     endif
@@ -551,7 +566,7 @@ function! s:absorb_on()
     endif
 
 
-    call s:turnOffTmuxStatus()
+    "call s:turnOffTmuxStatus()
 
     call s:hide_linenr()
     " Global options
@@ -600,12 +615,11 @@ function! s:absorb_on()
     augroup absorb
         autocmd!
         autocmd ColorScheme *        call s:tranquilize()
-        autocmd BufWinEnter *        call s:hide_linenr() | call s:hide_statusline() 
-        autocmd WinEnter,WinLeave *  call s:hide_statusline()| call s:hide_cursorline()
+        autocmd BufWinEnter,WinEnter,WinLeave,BufWinLeave,FileType *        call s:hide_linenr() | call s:hide_statusline() | call s:hide_cursorline()
         if has('nvim')
             autocmd TermClose * call feedkeys("\<plug>(absorb-resize)")
         endif
-        autocmd QuitPre * call s:turnOnTmuxStatus()
+        "autocmd QuitPre * call s:turnOnTmuxStatus()
         autocmd BufEnter *        call  s:moveBuffer()
         "FileType for nerdtree, BufWinLeave for tagbar
         autocmd VimResized,BufEnter,BufWinLeave,FileType *        call absorb#reSizeWin()
@@ -665,6 +679,7 @@ endfunction
         "call s:orig_cmd(wini.' wincmd w')
     "endfor
     "call s:orig_cmd(cur_winnr.' wincmd w')
+    "let g:loop_win=1
 "endfu
 
 let &cpo = s:cpo_save
