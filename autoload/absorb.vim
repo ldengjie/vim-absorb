@@ -82,9 +82,15 @@ function! s:hide_statusline()
 endfunction
 
 function! s:hide_linenr()
-  if !get(g:, 'absorb_linenr', 0)
-    setlocal nonu nornu colorcolumn=
-  endif
+    if exists("t:absorb_wins")
+        if s:wintype(0)=='inner' && &filetype!='minibufexpl'
+            if get(g:, 'absorb_hidelinenr', 1)
+                setlocal nonu nornu colorcolumn=
+            else
+                setlocal nu
+            endif
+        endif
+    endif
 endfunction
 
 fu! s:closeinner()
@@ -350,8 +356,9 @@ endfunction
 
 function! absorb#reSizeWin()
     if exists("t:absorb_wins")
-        let l:layout=s:calWinSize()
-        if (!exists('g:last_total_winnr')) || winnr('$') != g:last_total_winnr || (!exists('g:last_screen_size')) || g:last_screen_size!= [&columns,&lines] || (!exists('g:last_layout')) || g:last_layout!=l:layout
+        if (!exists('g:last_total_winnr')) || winnr('$') != g:last_total_winnr || (!exists('g:last_screen_size')) || g:last_screen_size!= [&columns,&lines] "|| (!exists('g:last_layout')) || g:last_layout!=l:layout
+            "若是每次都执行s:calWinSize(),从tagbar根据函数名字跳转时会到nerdtree窗口
+            let l:layout=s:calWinSize()
             for wininfo in l:layout
                 let winid=wininfo.winid
                 if winid != 'iwin'
@@ -380,7 +387,7 @@ function! absorb#reSizeWin()
                     endif
                 endif
             endfor
-            let g:last_layout=l:layout
+            "let g:last_layout=l:layout
             let g:last_screen_size=[&columns,&lines]
             let g:last_total_winnr=winnr('$')
         endif
