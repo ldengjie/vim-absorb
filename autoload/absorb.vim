@@ -350,40 +350,38 @@ endfunction
 
 function! absorb#reSizeWin()
     if exists("t:absorb_wins")
-        if (!exists('g:last_total_winnr')) || winnr('$') != g:last_total_winnr || (!exists('g:screen_size')) || g:screen_size!= [&columns,&lines] 
-            let l:layout=s:calWinSize()
-            if (!exists('g:last_layout')) || g:last_layout!=l:layout
-                for wininfo in l:layout
-                    let winid=wininfo.winid
-                    if winid != 'iwin'
-                        let winno=win_id2win(winid)
-                        let height=wininfo.height
-                        let width=wininfo.width
-                        if width>0
-                            execute 'vertical '.winno.' resize ' . width
-                        endif
-                        if height>0
-                            execute winno.' resize ' . height
-                        endif
+        let l:layout=s:calWinSize()
+        if (!exists('g:last_total_winnr')) || winnr('$') != g:last_total_winnr || (!exists('g:last_screen_size')) || g:last_screen_size!= [&columns,&lines] || (!exists('g:last_layout')) || g:last_layout!=l:layout
+            for wininfo in l:layout
+                let winid=wininfo.winid
+                if winid != 'iwin'
+                    let winno=win_id2win(winid)
+                    let height=wininfo.height
+                    let width=wininfo.width
+                    if width>0
+                        execute 'vertical '.winno.' resize ' . width
                     endif
-                endfor
-                for wininfo in l:layout
-                    let winid=wininfo.winid
-                    if winid != 'iwin'
-                        let winno=win_id2win(winid)
-                        let height=wininfo.height
-                        let width=wininfo.width
-                        if width>0
-                            execute 'vertical '.winno.' resize ' . width
-                        endif
-                        if height>0
-                            execute winno.' resize ' . height
-                        endif
+                    if height>0
+                        execute winno.' resize ' . height
                     endif
-                endfor
-                let g:last_layout=l:layout
-            endif
-            let g:screen_size=[&columns,&lines]
+                endif
+            endfor
+            for wininfo in l:layout
+                let winid=wininfo.winid
+                if winid != 'iwin'
+                    let winno=win_id2win(winid)
+                    let height=wininfo.height
+                    let width=wininfo.width
+                    if width>0
+                        execute 'vertical '.winno.' resize ' . width
+                    endif
+                    if height>0
+                        execute winno.' resize ' . height
+                    endif
+                endif
+            endfor
+            let g:last_layout=l:layout
+            let g:last_screen_size=[&columns,&lines]
             let g:last_total_winnr=winnr('$')
         endif
     endif
@@ -621,7 +619,7 @@ function! s:absorb_on()
         endif
         "autocmd QuitPre * call s:turnOnTmuxStatus()
         autocmd BufEnter *        call  s:moveBuffer()
-        "FileType for nerdtree, BufWinLeave for tagbar
+        "BufWinLeave for tagbar, FileType for nerdtree
         autocmd VimResized,BufEnter,BufWinLeave,FileType *        call absorb#reSizeWin()
         "autocmd BufEnter *        call  s:showWinInfo()
     augroup END
@@ -646,6 +644,7 @@ function! s:absorb_on()
     cabbrev b call absorb#backtoinner() <bar> b
     cabbrev bd call absorb#backtoinner() <bar> bd
     cabbrev bdel call absorb#backtoinner() <bar> bdel
+    cabbrev cclose call absorb#backtoinner() <bar> cclose <bar> call absorb#reSizeWin()
 
     cabbrev MBEToggle call absorb#backtoinner() <bar> MBEToggle
     cabbrev MBEClose call absorb#backtoinner() <bar> MBEClose
