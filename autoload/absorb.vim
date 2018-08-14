@@ -675,7 +675,7 @@ function! absorb#execute()
     exe 'MBEOpen'
     exe "NERDTree"
     exe "TagbarOpen"
-    if !l:hasFile
+    if l:hasFile
         call absorb#backtoinner()
     endif
     "call absorb#loopwin()
