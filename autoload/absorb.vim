@@ -81,13 +81,13 @@ function! s:hide_statusline()
   set statusline=\ 
 endfunction
 
-function! s:hide_linenr()
+function! s:toggle_linenr()
     if exists("t:absorb_wins")
         if s:wintype(0)=='inner' && &filetype!='minibufexpl'
-            if get(g:, 'absorb_hidelinenr', 1)
-                setlocal nonu nornu colorcolumn=
-            else
+            if (exists('g:absorb_showlinenr') && g:absorb_showlinenr && ! exists("t:winMax"))
                 setlocal nu
+            else
+                setlocal nonu nornu colorcolumn=
             endif
         endif
     endif
@@ -397,50 +397,56 @@ endfunction
 "-- 最大化当前buffer窗口 --
 function! s:toggleMaxWin()
     if exists("t:winMax")
-        let l:winMax_tmp=t:winMax
-        let l:curtab=tabpagenr()
-        for tabno in range(1,tabpagenr('$'))
-            execute 'normal! '.tabno.'gt'
-            if exists("t:orig_tab") && t:orig_tab==l:winMax_tmp
-                let l:winMax_orig_tabnr=tabpagenr()
-            endif
-            if exists("t:new_tab") && t:new_tab==l:winMax_tmp
-                let l:winMax_new_tabnr=tabpagenr()
-                let l:winMax_new_line=line('.')
-                let l:winMax_new_col=col('.')
-            endif
-        endfor
-        execute 'normal! '.l:curtab.'gt'
-
-        if exists("l:winMax_orig_tabnr")
-            if exists("l:winMax_new_tabnr")
-                "是在新tab里操作时
-                if l:winMax_orig_tabnr!=l:curtab
-                    let winMax_cur_bufnr=winbufnr(0)
-                    execute 'normal! '.l:winMax_orig_tabnr.'gt'
-                    call s:orig_cmd(win_id2win(t:winMax_orig_winid) . 'wincmd w')
-                    call s:orig_cmd('b'.winMax_cur_bufnr)
-                    execute printf('normal! %dG%d|', l:winMax_new_line, l:winMax_new_col)
-                    execute 'normal! zz'
-                endif
-                call s:orig_cmd('tabclose '.l:winMax_new_tabnr)
-            endif
-        endif
-
-        unlet t:winMax
-        if exists('t:orig_tab') | unlet t:orig_tab | endif
-        if exists('t:new_tab') | unlet t:new_tab | endif
-
-        "是在原来tab里操作时,关闭前一个最大化窗口后,自动最大化当前buffer
-        if l:winMax_orig_tabnr==l:curtab
-            call s:maxWin()
-        endif
+        call s:resetWin()
         call s:turnOnTmuxStatus()
     else
         call s:maxWin()
         call s:turnOffTmuxStatus()
     endif
+    call s:toggle_linenr()
 endfunction
+
+function! s:resetWin()
+    let l:winMax_tmp=t:winMax
+    let l:curtab=tabpagenr()
+    for tabno in range(1,tabpagenr('$'))
+        execute 'normal! '.tabno.'gt'
+        if exists("t:orig_tab") && t:orig_tab==l:winMax_tmp
+            let l:winMax_orig_tabnr=tabpagenr()
+        endif
+        if exists("t:new_tab") && t:new_tab==l:winMax_tmp
+            let l:winMax_new_tabnr=tabpagenr()
+            let l:winMax_new_line=line('.')
+            let l:winMax_new_col=col('.')
+        endif
+    endfor
+    execute 'normal! '.l:curtab.'gt'
+
+    if exists("l:winMax_orig_tabnr")
+        if exists("l:winMax_new_tabnr")
+            "是在新tab里操作时
+            if l:winMax_orig_tabnr!=l:curtab
+                let winMax_cur_bufnr=winbufnr(0)
+                execute 'normal! '.l:winMax_orig_tabnr.'gt'
+                call s:orig_cmd(win_id2win(t:winMax_orig_winid) . 'wincmd w')
+                call s:orig_cmd('b'.winMax_cur_bufnr)
+                execute printf('normal! %dG%d|', l:winMax_new_line, l:winMax_new_col)
+                execute 'normal! zz'
+            endif
+            call s:orig_cmd('tabclose '.l:winMax_new_tabnr)
+        endif
+    endif
+
+    unlet t:winMax
+    if exists('t:orig_tab') | unlet t:orig_tab | endif
+    if exists('t:new_tab') | unlet t:new_tab | endif
+
+    "是在原来tab里操作时,关闭前一个最大化窗口后,自动最大化当前buffer
+    if l:winMax_orig_tabnr==l:curtab
+        call s:maxWin()
+    endif
+endfunction
+
 function! s:maxWin()
     "只有一个窗口时,不操作
     if t:absorb_wins.i_wins_count()>1 || t:absorb_wins.o_wins_count()>0
@@ -575,7 +581,7 @@ function! s:absorb_on()
 
     "call s:turnOffTmuxStatus()
 
-    call s:hide_linenr()
+    call s:toggle_linenr()
     " Global options
     let &winheight = max([&winminheight, 1])
     set winminheight=1
@@ -622,7 +628,7 @@ function! s:absorb_on()
     augroup absorb
         autocmd!
         autocmd ColorScheme *        call s:tranquilize()
-        autocmd BufWinEnter,WinEnter,WinLeave,BufWinLeave,FileType *        call s:hide_linenr() | call s:hide_statusline() | call s:hide_cursorline()
+        autocmd BufWinEnter,WinEnter,WinLeave,BufWinLeave,FileType *        call s:toggle_linenr() | call s:hide_statusline() | call s:hide_cursorline()
         if has('nvim')
             autocmd TermClose * call feedkeys("\<plug>(absorb-resize)")
         endif
