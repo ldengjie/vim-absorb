@@ -435,8 +435,10 @@ function! s:toggleMaxWin()
         if l:winMax_orig_tabnr==l:curtab
             call s:maxWin()
         endif
+        call s:turnOnTmuxStatus()
     else
         call s:maxWin()
+        call s:turnOffTmuxStatus()
     endif
 endfunction
 function! s:maxWin()
@@ -624,7 +626,7 @@ function! s:absorb_on()
         if has('nvim')
             autocmd TermClose * call feedkeys("\<plug>(absorb-resize)")
         endif
-        "autocmd QuitPre * call s:turnOnTmuxStatus()
+        autocmd QuitPre * call s:turnOnTmuxStatus()
         autocmd BufEnter *        call  s:moveBuffer()
         "BufWinLeave for tagbar, FileType for nerdtree
         autocmd VimResized,BufEnter,BufWinLeave,FileType *        call absorb#reSizeWin()

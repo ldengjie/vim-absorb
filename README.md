@@ -22,10 +22,10 @@ Configuration
 -------------
 
 ```
-let g:absorb_width  = '80%'  
-let g:absorb_height = '90%'  
+let g:absorb_width  = '70%'
+let g:absorb_height = '90%'
 let g:absorb_linenr = 0
-autocmd VimEnter * call absorb#execute()  
+let g:absorb_open   = 1
 ```
 
 screenshots
