@@ -21,6 +21,6 @@
 " OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 " WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-if (exists('g:absorb_open') && g:absorb_open)
+if !(exists('g:absorb_open') && g:absorb_open==0)
     autocmd VimEnter * call absorb#execute()
 endif
