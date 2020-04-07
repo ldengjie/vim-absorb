@@ -654,6 +654,7 @@ function! s:absorb_on()
 
     cabbrev <expr> q <SID>quitall()
     cabbrev <expr> wq <SID>wquitall()
+    cabbrev Ag call absorb#backtoinner() <bar> Ag
     cabbrev bn call absorb#backtoinner() <bar> bn
     cabbrev bp call absorb#backtoinner() <bar> bp
     cabbrev b call absorb#backtoinner() <bar> b
@@ -681,8 +682,8 @@ function! absorb#execute()
     "exe "highlight VertSplit ctermbg='red' | highlight StatusLine ctermbg='black' | highlight StatusLineNC ctermbg='white'"
     let l:hasFile=len(bufname("%"))
     exe 'MBEOpen'
-    exe "NERDTree"
     exe "TagbarOpen"
+    exe "NERDTree"
     if l:hasFile
         call absorb#backtoinner()
     endif
